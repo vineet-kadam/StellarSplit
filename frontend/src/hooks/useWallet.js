@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { isConnected, isAllowed, requestAccess, getAddress, getNetwork } from '@stellar/freighter-api';
+import freighterApi from '@stellar/freighter-api';
+
+// Destructure Freighter API methods
+const {
+  isConnected,
+  isAllowed,
+  requestAccess,
+  getPublicKey,
+  getNetwork,
+  signTransaction
+} = freighterApi;
 
 // Network constants
 const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
@@ -49,13 +59,20 @@ export function useWallet() {
     
     for (let i = 0; i < delays.length; i++) {
       try {
+        // Check if window.freighter exists as backup
+        if (typeof window !== 'undefined' && window.freighter) {
+          setInstalled(true);
+          return true;
+        }
+        
+        // Use Freighter API
         const connected = await isConnected();
         if (connected) {
           setInstalled(true);
           return true;
         }
       } catch (err) {
-        // Continue to next attempt
+        console.log(`Freighter detection attempt ${i + 1} failed:`, err);
       }
       
       // Wait before next attempt
@@ -73,7 +90,7 @@ export function useWallet() {
     try {
       const allowed = await isAllowed();
       if (allowed) {
-        const walletAddress = await getAddress();
+        const walletAddress = await getPublicKey();
         if (walletAddress) {
           setAddress(walletAddress);
           
@@ -125,7 +142,7 @@ export function useWallet() {
       }
 
       // Get wallet address
-      const walletAddress = await getAddress();
+      const walletAddress = await getPublicKey();
       if (!walletAddress) {
         throw new Error('Could not retrieve wallet address from Freighter. Please make sure you have an account set up.');
       }
@@ -167,6 +184,8 @@ export function useWallet() {
         setError('Freighter wallet is locked. Please unlock it and try again.');
       } else if (err.message.includes('Could not retrieve')) {
         setError(err.message);
+      } else if (err.message.includes('not a function') || err.name === 'TypeError') {
+        setError('Freighter extension appears to be corrupted. Please try: 1) Reinstalling Freighter, 2) Restarting browser, or 3) Use Demo Mode below.');
       } else {
         setError(`Failed to connect: ${err.message}`);
       }
