@@ -353,12 +353,19 @@ Watch the full demo: [StellarSplit Demo Video](https://youtu.be/YOUR_VIDEO_ID)
 
 ## 📊 Transaction Examples
 
-**Sample Transaction Hash:**
+**Live Testnet Transaction:**
+View transactions on [Stellar Expert](https://stellar.expert/explorer/testnet)
+
+**Example Transaction Hash:**
 ```
-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz
+Coming soon after testnet deployment
 ```
 
-View on Stellar Explorer: [stellar.expert/explorer/testnet/tx/abc123...](https://stellar.expert/explorer/testnet/tx/abc123def456)
+**How to View:**
+1. Deploy contracts to testnet
+2. Create a test transaction
+3. Copy transaction hash from Freighter
+4. View on: `https://stellar.expert/explorer/testnet/tx/YOUR_TX_HASH`
 
 ## 🐛 Troubleshooting
 
