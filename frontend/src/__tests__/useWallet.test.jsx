@@ -2,13 +2,15 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useWallet } from '../hooks/useWallet';
 
-// Mock @stellar/freighter-api
+// Mock @stellar/freighter-api with default export
 vi.mock('@stellar/freighter-api', () => ({
-  isConnected: vi.fn(),
-  isAllowed: vi.fn(),
-  requestAccess: vi.fn(),
-  getAddress: vi.fn(),
-  getNetwork: vi.fn()
+  default: {
+    isConnected: vi.fn(),
+    isAllowed: vi.fn(),
+    requestAccess: vi.fn(),
+    getPublicKey: vi.fn(),
+    getNetwork: vi.fn()
+  }
 }));
 
 describe('useWallet Hook', () => {
