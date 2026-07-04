@@ -2,8 +2,11 @@
 
 > A production-ready decentralized group expense splitter built on the Stellar blockchain
 
-[![CI/CD](https://github.com/yourusername/stellarsplit/workflows/CI/badge.svg)](https://github.com/yourusername/stellarsplit/actions)
+**🌐 Live Demo:** [https://stellarsplit-one.vercel.app](https://stellarsplit-one.vercel.app)
+
+[![CI/CD](https://github.com/vineet-kadam/stellarsplit/workflows/CI/badge.svg)](https://github.com/vineet-kadam/stellarsplit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://stellarsplit-one.vercel.app)
 
 ## 📖 Project Overview
 
