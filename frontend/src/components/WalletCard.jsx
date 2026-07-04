@@ -1,47 +1,25 @@
-import { useState, useEffect } from 'react';
-import { connectFreighter, disconnectWallet, getWalletErrorMessage } from '../utils/wallet';
-import { getAccountBalance, shortenAddress } from '../utils/stellar';
+import { useEffect } from 'react';
+import { useWallet } from '../hooks/useWallet';
+import { shortenAddress } from '../utils/stellar';
 
 function WalletCard({ onWalletConnect, onWalletDisconnect }) {
-  const [publicKey, setPublicKey] = useState(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState(null);
+  const wallet = useWallet();
 
+  // Notify parent component when wallet state changes
   useEffect(() => {
-    // Check if wallet was previously connected
-    const savedPublicKey = localStorage.getItem('stellar_public_key');
-    if (savedPublicKey) {
-      setPublicKey(savedPublicKey);
-      onWalletConnect(savedPublicKey);
+    if (wallet.address) {
+      onWalletConnect(wallet.address);
+    } else {
+      onWalletDisconnect();
     }
-  }, []);
+  }, [wallet.address, onWalletConnect, onWalletDisconnect]);
 
-  const handleConnect = async () => {
-    setIsConnecting(true);
-    setError(null);
-
-    try {
-      console.log('WalletCard: Initiating connection...');
-      const key = await connectFreighter();
-      console.log('WalletCard: Connection successful');
-      
-      setPublicKey(key);
-      localStorage.setItem('stellar_public_key', key);
-      onWalletConnect(key);
-    } catch (err) {
-      console.error('WalletCard: Connection failed', err);
-      const friendlyError = getWalletErrorMessage(err);
-      setError(friendlyError);
-    } finally {
-      setIsConnecting(false);
-    }
+  const handleConnect = async (type = 'freighter') => {
+    await wallet.connect(type);
   };
 
   const handleDisconnect = () => {
-    setPublicKey(null);
-    localStorage.removeItem('stellar_public_key');
-    disconnectWallet();
-    onWalletDisconnect();
+    wallet.disconnect();
   };
 
   return (
@@ -49,32 +27,48 @@ function WalletCard({ onWalletConnect, onWalletDisconnect }) {
       <div className="wallet-header">
         <h3>Wallet Connection</h3>
         <div className="wallet-status">
-          <span className={`status-dot ${publicKey ? 'connected' : 'disconnected'}`}></span>
-          <span>{publicKey ? 'Connected' : 'Not Connected'}</span>
+          <span className={`status-dot ${wallet.address ? 'connected' : 'disconnected'}`}></span>
+          <span>{wallet.address ? 'Connected' : 'Not Connected'}</span>
+          {wallet.network && (
+            <span className="network-badge">{wallet.network}</span>
+          )}
         </div>
       </div>
 
-      {error && (
-        <div className="error-message">
-          <span className="error-icon">⚠️</span>
-          {error}
+      {/* Freighter detection status */}
+      {wallet.installed === false && (
+        <div className="warning-message">
+          <span className="warning-icon">⚠️</span>
+          Freighter wallet not detected. Please install it to connect.
         </div>
       )}
 
-      {!publicKey ? (
+      {wallet.error && (
+        <div className="error-message">
+          <span className="error-icon">⚠️</span>
+          {wallet.error}
+        </div>
+      )}
+
+      {!wallet.address ? (
         <div className="wallet-connect-section">
           <p className="wallet-description">
             Connect your Freighter wallet to start splitting expenses on Stellar
           </p>
           <button
             className="btn btn-primary btn-large"
-            onClick={handleConnect}
-            disabled={isConnecting}
+            onClick={() => handleConnect('freighter')}
+            disabled={wallet.connecting || wallet.installed === null}
           >
-            {isConnecting ? (
+            {wallet.connecting ? (
               <>
                 <span className="spinner"></span>
                 Connecting...
+              </>
+            ) : wallet.installed === null ? (
+              <>
+                <span className="spinner"></span>
+                Detecting Freighter...
               </>
             ) : (
               <>
@@ -100,15 +94,11 @@ function WalletCard({ onWalletConnect, onWalletDisconnect }) {
             </p>
             <button
               className="btn btn-secondary"
-              onClick={() => {
-                const testKey = 'GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCD';
-                setPublicKey(testKey);
-                localStorage.setItem('stellar_public_key', testKey);
-                onWalletConnect(testKey);
-              }}
+              onClick={() => handleConnect('demo')}
+              disabled={wallet.connecting}
               style={{width: '100%'}}
             >
-              Use Test Address (Demo Mode)
+              Use Demo Wallet (Test Mode)
             </button>
             <p style={{fontSize: '0.75rem', color: '#64748b', marginTop: '8px'}}>
               ⚠️ Demo mode only - won't send real transactions
@@ -120,16 +110,22 @@ function WalletCard({ onWalletConnect, onWalletDisconnect }) {
           <div className="wallet-address">
             <label>Public Key</label>
             <div className="address-display">
-              <code>{shortenAddress(publicKey, 8)}</code>
+              <code>{shortenAddress(wallet.address, 8)}</code>
               <button
                 className="btn-icon"
-                onClick={() => navigator.clipboard.writeText(publicKey)}
+                onClick={() => navigator.clipboard.writeText(wallet.address)}
                 title="Copy address"
               >
                 📋
               </button>
             </div>
           </div>
+          {wallet.networkOk && (
+            <div className="network-info">
+              <span className="success-icon">✓</span>
+              <span>Connected to {wallet.network}</span>
+            </div>
+          )}
           <button
             className="btn btn-secondary btn-small"
             onClick={handleDisconnect}
