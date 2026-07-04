@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
+import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import WalletCard from './components/WalletCard';
 import BalanceCard from './components/BalanceCard';
 import SendXLMForm from './components/SendXLMForm';
 import CreateGroupForm from './components/CreateGroupForm';
@@ -10,21 +10,34 @@ import AddExpenseForm from './components/AddExpenseForm';
 import GroupDashboard from './components/GroupDashboard';
 import SettlementDashboard from './components/SettlementDashboard';
 import AnalyticsCards from './components/AnalyticsCards';
+import { useWallet } from './hooks/useWallet';
 
 function App() {
-  const [publicKey, setPublicKey] = useState(null);
+  const wallet = useWallet();
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState('groups'); // 'groups', 'send', 'expenses'
 
-  const handleWalletConnect = (key) => {
-    setPublicKey(key);
-  };
-
-  const handleWalletDisconnect = () => {
-    setPublicKey(null);
-    setSelectedGroup(null);
-  };
+  // Auto-scroll to content when wallet connects or disconnects
+  useEffect(() => {
+    if (wallet.address) {
+      // Wallet connected - scroll to dashboard
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+          const balanceSection = document.querySelector('.balance-section');
+          if (balanceSection) {
+            balanceSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }, 200);
+    } else {
+      // Wallet disconnected - scroll to top (hero section)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    }
+  }, [wallet.address]);
 
   const handleTransactionComplete = () => {
     // Trigger balance refresh
@@ -53,151 +66,145 @@ function App() {
 
   return (
     <div className="app">
-      <Hero />
+      <Navbar />
+      {!wallet.address && <Hero />}
 
       <div className="container">
-        {/* Wallet and Balance Section */}
-        <div className="top-section">
-          <WalletCard
-            onWalletConnect={handleWalletConnect}
-            onWalletDisconnect={handleWalletDisconnect}
-          />
-          {publicKey && (
-            <BalanceCard
-              publicKey={publicKey}
-              refreshTrigger={refreshTrigger}
-            />
-          )}
-        </div>
+        {/* Connected Dashboard */}
+        {wallet.address && (
+          <div className="dashboard-wrapper">
+            {/* Balance Section */}
+            <div className="balance-section">
+              <BalanceCard
+                publicKey={wallet.address}
+                refreshTrigger={refreshTrigger}
+              />
+            </div>
 
-        {/* Analytics Cards */}
-        {publicKey && (
-          <AnalyticsCards publicKey={publicKey} />
-        )}
+            {/* Analytics Cards */}
+            <AnalyticsCards publicKey={wallet.address} />
 
-        {/* Navigation Tabs */}
-        {publicKey && (
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'groups' ? 'active' : ''}`}
-              onClick={() => setActiveTab('groups')}
-            >
-              📊 Groups & Settlements
-            </button>
-            <button
-              className={`tab ${activeTab === 'expenses' ? 'active' : ''}`}
-              onClick={() => setActiveTab('expenses')}
-            >
-              💰 Manage Expenses
-            </button>
-            <button
-              className={`tab ${activeTab === 'send' ? 'active' : ''}`}
-              onClick={() => setActiveTab('send')}
-            >
-              💸 Send XLM
-            </button>
+            {/* Navigation Tabs */}
+            <div className="tabs">
+              <button
+                className={`tab ${activeTab === 'groups' ? 'active' : ''}`}
+                onClick={() => setActiveTab('groups')}
+              >
+                📊 Groups & Settlements
+              </button>
+              <button
+                className={`tab ${activeTab === 'expenses' ? 'active' : ''}`}
+                onClick={() => setActiveTab('expenses')}
+              >
+                💰 Manage Expenses
+              </button>
+              <button
+                className={`tab ${activeTab === 'send' ? 'active' : ''}`}
+                onClick={() => setActiveTab('send')}
+              >
+                💸 Send XLM
+              </button>
+            </div>
+
+            {/* Main Content Area */}
+            <>
+              {activeTab === 'groups' && (
+                <div className="content-grid">
+                  <div className="content-left">
+                    <GroupDashboard
+                      publicKey={wallet.address}
+                      onGroupSelect={handleGroupSelect}
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </div>
+                  <div className="content-right">
+                    <CreateGroupForm
+                      publicKey={wallet.address}
+                      onGroupCreated={handleGroupCreated}
+                    />
+                    {selectedGroup && (
+                      <SettlementDashboard
+                        publicKey={wallet.address}
+                        selectedGroup={selectedGroup}
+                        onSettlementComplete={handleTransactionComplete}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'expenses' && (
+                <div className="content-grid">
+                  <div className="content-left">
+                    <GroupDashboard
+                      publicKey={wallet.address}
+                      onGroupSelect={handleGroupSelect}
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </div>
+                  <div className="content-right">
+                    <AddMemberForm
+                      publicKey={wallet.address}
+                      selectedGroup={selectedGroup}
+                      onMemberAdded={handleMemberAdded}
+                    />
+                    <AddExpenseForm
+                      publicKey={wallet.address}
+                      selectedGroup={selectedGroup}
+                      onExpenseAdded={handleExpenseAdded}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'send' && (
+                <div className="content-centered">
+                  <SendXLMForm
+                    publicKey={wallet.address}
+                    onTransactionComplete={handleTransactionComplete}
+                  />
+                </div>
+              )}
+            </>
           </div>
         )}
 
-        {/* Main Content Area */}
-        {publicKey && (
-          <>
-            {activeTab === 'groups' && (
-              <div className="content-grid">
-                <div className="content-left">
-                  <GroupDashboard
-                    publicKey={publicKey}
-                    onGroupSelect={handleGroupSelect}
-                    refreshTrigger={refreshTrigger}
-                  />
-                </div>
-                <div className="content-right">
-                  <CreateGroupForm
-                    publicKey={publicKey}
-                    onGroupCreated={handleGroupCreated}
-                  />
-                  {selectedGroup && (
-                    <SettlementDashboard
-                      publicKey={publicKey}
-                      selectedGroup={selectedGroup}
-                      onSettlementComplete={handleTransactionComplete}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'expenses' && (
-              <div className="content-grid">
-                <div className="content-left">
-                  <GroupDashboard
-                    publicKey={publicKey}
-                    onGroupSelect={handleGroupSelect}
-                    refreshTrigger={refreshTrigger}
-                  />
-                </div>
-                <div className="content-right">
-                  <AddMemberForm
-                    publicKey={publicKey}
-                    selectedGroup={selectedGroup}
-                    onMemberAdded={handleMemberAdded}
-                  />
-                  <AddExpenseForm
-                    publicKey={publicKey}
-                    selectedGroup={selectedGroup}
-                    onExpenseAdded={handleExpenseAdded}
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'send' && (
-              <div className="content-centered">
-                <SendXLMForm
-                  publicKey={publicKey}
-                  onTransactionComplete={handleTransactionComplete}
-                />
-              </div>
-            )}
-          </>
-        )}
-
         {/* Welcome Message for Non-Connected Users */}
-        {!publicKey && (
+        {!wallet.address && (
           <div className="welcome-section">
             <div className="welcome-card">
-              <h2>Welcome to StellarSplit! 🚀</h2>
+              <h2>Welcome to StellarSplit</h2>
               <p>
-                StellarSplit is a decentralized expense splitting application built on the Stellar blockchain.
-                Connect your wallet to get started.
+                The modern way to split expenses with friends, roommates, and groups. 
+                Powered by blockchain technology for transparent, instant, and secure settlements.
               </p>
               <div className="features-list">
                 <div className="feature-item">
-                  <span className="feature-icon">✅</span>
+                  <span className="feature-icon">👥</span>
                   <div>
                     <h4>Create Groups</h4>
-                    <p>Organize expenses with friends, family, or colleagues</p>
+                    <p>Organize expenses with friends, roommates, or travel companions. Keep everything in one place.</p>
                   </div>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">✅</span>
+                  <span className="feature-icon">💰</span>
                   <div>
                     <h4>Track Expenses</h4>
-                    <p>Record shared expenses and split them automatically</p>
+                    <p>Add shared expenses and automatically split them among group members with smart calculations.</p>
                   </div>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">✅</span>
+                  <span className="feature-icon">⚡</span>
                   <div>
-                    <h4>Settle on Stellar</h4>
-                    <p>Pay back your friends directly with XLM on Stellar</p>
+                    <h4>Instant Settlements</h4>
+                    <p>Settle debts directly on the Stellar blockchain with near-instant transactions and minimal fees.</p>
                   </div>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">✅</span>
+                  <span className="feature-icon">🔒</span>
                   <div>
-                    <h4>Low Fees</h4>
-                    <p>Enjoy near-instant transactions with minimal fees</p>
+                    <h4>Secure & Transparent</h4>
+                    <p>All transactions are recorded on-chain, providing complete transparency and security for your group.</p>
                   </div>
                 </div>
               </div>
