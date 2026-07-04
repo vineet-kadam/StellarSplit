@@ -47,10 +47,6 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
 
-      - name: Install Stellar CLI
-        run: |
-          cargo install --locked stellar-cli
-
       - name: Test Group Expense Contract
         working-directory: ./contracts/group_expense_contract
         run: cargo test --release
@@ -66,24 +62,3 @@ jobs:
       - name: Build Settlement Contract
         working-directory: ./contracts/settlement_contract
         run: cargo build --target wasm32-unknown-unknown --release
-
-  lint:
-    name: Code Quality
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm install
-
-      - name: Check formatting
-        working-directory: ./contracts/group_expense_contract
-        run: cargo fmt --check || true
